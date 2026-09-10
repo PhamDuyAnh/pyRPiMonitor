@@ -1,0 +1,22 @@
+[Unit]
+Description=RPiMonitor 0.1.0 status collector
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/rpi-monitor
+EnvironmentFile=/home/pi/.config/rpi-monitor/rpi-monitor.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/pi/rpi-monitor/rpi_monitor.py
+Restart=on-failure
+RestartSec=10
+RestartPreventExitStatus=2
+StandardOutput=journal
+StandardError=journal
+UMask=0077
+
+[Install]
+WantedBy=default.target
