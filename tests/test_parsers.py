@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rpi_monitor as monitor
+import py_rpi_monitor as monitor
 
 
 class CpuParserTests(unittest.TestCase):
@@ -175,6 +175,26 @@ class CliTests(unittest.TestCase):
             self.assertEqual(monitor.main(["--once", "--publish"]), 2)
         collect.assert_not_called()
         self.assertIn("RPIMONITOR_MQTT_PASSWORD", output.getvalue())
+
+    def test_continuous_publish_recovers_next_cycle(self):
+        stop = MagicMock()
+        stop.is_set.side_effect = [False, False, True]
+        with patch.dict(os.environ, {"RPIMONITOR_MQTT_USERNAME": "fixture-user", "RPIMONITOR_MQTT_PASSWORD": "fixture-secret"}), \
+             patch.object(monitor.Monitor, "collect", side_effect=[{"sample": 1}, {"sample": 2}]), \
+             patch.object(monitor, "publish_mqtt", side_effect=[monitor.PublishFailure(), None]) as publish, \
+             patch.object(monitor.threading, "Event", return_value=stop), patch.object(monitor.signal, "signal"), \
+             contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(monitor.main(["--interval", "60"]), 0)
+        self.assertEqual(publish.call_count, 2)
+        self.assertEqual(json.loads(publish.call_args_list[1].args[0]), {"sample": 2})
+        self.assertEqual(stop.wait.call_count, 2)
+
+    def test_once_publish_failure_exits(self):
+        with patch.dict(os.environ, {"RPIMONITOR_MQTT_USERNAME": "fixture-user", "RPIMONITOR_MQTT_PASSWORD": "fixture-secret"}), \
+             patch.object(monitor.Monitor, "collect", return_value={}), \
+             patch.object(monitor, "publish_mqtt", side_effect=monitor.PublishFailure()), \
+             patch.object(monitor.signal, "signal"), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(monitor.main(["--once", "--publish"]), 1)
 
     def test_interval_environment_and_override(self):
         with patch.dict(os.environ, {"RPIMONITOR_INTERVAL": "30"}):

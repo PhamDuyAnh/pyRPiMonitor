@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RPiMonitor 0.1.0: read-only collectors and bounded MQTT publishing."""
+"""pyRPiMonitor 0.1.1: read-only collectors and bounded MQTT publishing."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,7 @@ import unicodedata
 import urllib.error
 import urllib.request
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 TOPIC = "RPiMonitor/status"
 TIMEOUT = 5.0
 CPU_FIELDS = ("usage_percent", "per_core_percent", "load_1m", "load_5m", "load_15m",
@@ -452,7 +452,7 @@ def positive_interval(value: str) -> float:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="RPiMonitor 0.1.0")
+    parser = argparse.ArgumentParser(description="pyRPiMonitor 0.1.1")
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--once", action="store_true")
     mode = parser.add_mutually_exclusive_group()
@@ -497,8 +497,9 @@ def main(argv: list[str] | None = None) -> int:
                 print("Publish requires paho-mqtt 1.6.1 for this Python.", file=sys.stderr)
                 return 2
             except Exception:
-                print("MQTT publish failed after bounded attempts; check broker, authentication and topic ACL.", file=sys.stderr)
-                return 1
+                print("MQTT publish failed after bounded attempts; sample dropped. Check broker, authentication and topic ACL.", file=sys.stderr)
+                if args.once:
+                    return 1
         if args.once:
             return 0
         stop.wait(max(0.0, args.interval - (time.monotonic() - started)))
@@ -511,5 +512,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         sys.exit(0)
     except Exception:
-        print("RPiMonitor stopped due to an internal error; details omitted to protect credentials.", file=sys.stderr)
+        print("pyRPiMonitor stopped due to an internal error; details omitted to protect credentials.", file=sys.stderr)
         sys.exit(1)

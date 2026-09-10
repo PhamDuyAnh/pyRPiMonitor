@@ -1,16 +1,16 @@
 [Unit]
-Description=RPiMonitor 0.1.0 status collector
+Description=pyRPiMonitor 0.1.1 status collector
 StartLimitIntervalSec=300
 StartLimitBurst=3
 
 [Service]
 Type=simple
 # User manager already runs as pi; inherit its user and supplementary groups.
-WorkingDirectory=/home/pi/rpi-monitor
-EnvironmentFile=/home/pi/.config/rpi-monitor/rpi-monitor.env
+WorkingDirectory=/home/pi/pyRPiMonitor
+EnvironmentFile=/home/pi/.config/pyRPiMonitor/pyRPiMonitor.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/usr/bin/python3 /home/pi/rpi-monitor/rpi_monitor.py
+ExecStart=/usr/bin/python3 /home/pi/pyRPiMonitor/py_rpi_monitor.py
 Restart=on-failure
 RestartSec=10
 RestartPreventExitStatus=2
