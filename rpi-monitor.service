@@ -5,7 +5,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-User=pi
+# User manager already runs as pi; inherit its user and supplementary groups.
 WorkingDirectory=/home/pi/rpi-monitor
 EnvironmentFile=/home/pi/.config/rpi-monitor/rpi-monitor.env
 Environment=PYTHONDONTWRITEBYTECODE=1

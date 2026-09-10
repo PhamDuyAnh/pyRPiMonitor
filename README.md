@@ -153,13 +153,15 @@ Nếu Git báo thay đổi local hoặc lịch sử phân nhánh, dừng để r
 reset/clean/force. Credential ngoài checkout được giữ nguyên khi cập nhật.
 
 Bộ cài dùng **systemd user service của pi**, không ghi `/etc/systemd/system`.
-Unit vẫn có `User=pi`, `WorkingDirectory=/home/pi/rpi-monitor`,
+Unit kế thừa user và supplementary groups của user manager `pi`, không đặt
+`User=`/`Group=`. Giữ `WorkingDirectory=/home/pi/rpi-monitor`,
 `EnvironmentFile=/home/pi/.config/rpi-monitor/rpi-monitor.env`,
 `Restart=on-failure`, `RestartSec=10`. Chỉ RPiMonitor được restart khi lỗi;
 exit 2 do cấu hình/dependency không được tự restart. StartLimit giới hạn 3 lần
 trong 300 giây, tránh lỗi MQTT dẫn đến restart liên tục không giới hạn.
-`User=pi` hợp lệ với user manager đang chạy dưới chính user pi, theo
-[systemd 252 User/Group Identity](https://github.com/systemd/systemd/blob/v252/man/systemd.exec.xml).
+Không đặt `User=pi` trong user unit: việc systemd thiết lập lại nhóm có thể
+thất bại với `216/GROUP` khi chạy không có quyền đặc biệt. Bộ cài vẫn kiểm tra
+người chạy là `pi`; dịch vụ kế thừa quyền của pi mà không chuyển user/group.
 
 Sau khi có phê duyệt triển khai, đặt source ở `/home/pi/rpi-monitor` và chạy
 `sh install.sh` bằng user pi. Script kiểm tra dependency đã có, sao lưu unit cũ
@@ -215,3 +217,23 @@ Kết quả local ngày 2026-09-10 trên Windows/Python 3.12.4:
 
 MQTT được kiểm tra bằng mock (bao gồm thiếu PUBACK); chưa thử broker thật, service
 thật, journal thật hoặc schema API thực tế trên Pi. Không SSH/SCP hoặc deploy trong bước này.
+
+## Khắc phục bản unit cũ bị 216/GROUP
+
+Đây là lỗi thiết lập nhóm trước khi Python được khởi chạy, không phải lỗi MQTT.
+Bản unit đã bỏ `User=pi` để kế thừa danh tính của user manager. Trong phiên pi:
+
+```sh
+systemctl --user stop rpi-monitor.service
+cd /home/pi/rpi-monitor
+git pull --ff-only
+sh install.sh
+systemctl --user reset-failed rpi-monitor.service
+systemctl --user start rpi-monitor.service
+systemctl --user status rpi-monitor.service
+```
+
+Bộ cài sao lưu unit cũ và không sửa file credential. Nếu vẫn lỗi, xem tối đa
+30 dòng bằng `journalctl --user -u rpi-monitor.service -n 30 --no-pager`.
+Chưa xác minh bản sửa trên Pi; status active chỉ xác nhận tiến trình đang chạy,
+không thay thế kiểm tra subscriber MQTT đã nhận JSON.
